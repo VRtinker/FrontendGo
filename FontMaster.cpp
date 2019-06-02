@@ -44,7 +44,7 @@ static const char FRAGMENT_SHADER[] =
         "}\n";
 
 void Init(int MenuWidth, int MenuHeight) {
-  if (FT_Init_FreeType(&ft)) LOG("ERROR::FREETYPE: Could not init FreeType Library");
+  if (FT_Init_FreeType(&ft)) OVR_LOG("ERROR::FREETYPE: Could not init FreeType Library");
 
   glGenVertexArrays(1, &VAO);
   glGenBuffers(1, &VBO);
@@ -63,7 +63,7 @@ void Init(int MenuWidth, int MenuHeight) {
   glUniformMatrix4fv(glGetUniformLocation(glProgram.Program, "projection"), 1, GL_FALSE,
                      glm::value_ptr(projection));
 
-  LOG("FontMaster Initialized");
+  OVR_LOG("FontMaster Initialized");
 }
 
 void LoadFont(RenderFont *font, FT_Face face, uint fontSize) {
@@ -114,7 +114,7 @@ void LoadFont(RenderFont *font, FT_Face face, uint fontSize) {
       ascent = ascent_calc - descent;
     }
     if (font->offsetY < (int) ascent) {
-      LOG("new ascent %i to %f", font->offsetY, ascent);
+      OVR_LOG("new ascent %i to %f", font->offsetY, ascent);
       font->offsetY = (int) ascent;
     }
 
@@ -143,7 +143,7 @@ void LoadFont(RenderFont *font, FT_Face face, uint fontSize) {
   Character ch = font->Characters['P'];
   font->PHeight = ch.Size.y;
   font->PStart = font->offsetY - ch.Bearing.y;
-  LOG("offset: %i, height: %i, start: %i", font->offsetY, font->PHeight, font->PStart);
+  OVR_LOG("offset: %i, height: %i, start: %i", font->offsetY, font->PHeight, font->PStart);
 
   // Set texture options
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -155,27 +155,27 @@ void LoadFont(RenderFont *font, FT_Face face, uint fontSize) {
 
   FT_Done_Face(face);
 
-  LOG("finished loading fonts");
+  OVR_LOG("finished loading fonts");
 }
 
 void LoadFontFromAssets(App *app, RenderFont *font, const char *filePath, uint fontSize) {
-  LOG("start loading font from system");
+  OVR_LOG("start loading font from system");
   static MemBufferT<uint8_t> buffer;
 
   FT_Face face;
   if (app->GetFileSys().ReadFile(filePath, buffer))
     if (FT_New_Memory_Face(ft, buffer, buffer.GetSize(), 0, &face)) {
-      LOG("ERRO::FREETYPE: Faild to load font from memory");
+      OVR_LOG("ERRO::FREETYPE: Faild to load font from memory");
     } else {
       LoadFont(font, face, fontSize);
     }
 }
 
 void LoadFont(RenderFont *font, const char *filePath, uint fontSize) {
-  LOG("start loading font from android system");
+  OVR_LOG("start loading font from android system");
 
   FT_Face face;
-  if (FT_New_Face(ft, filePath, 0, &face)) LOG("ERROR::FREETYPE: Failed to load font");
+  if (FT_New_Face(ft, filePath, 0, &face)) OVR_LOG("ERROR::FREETYPE: Failed to load font");
 
   LoadFont(font, face, fontSize);
 }

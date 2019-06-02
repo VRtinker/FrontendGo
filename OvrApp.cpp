@@ -100,7 +100,8 @@ void OvrApp::EnteredVrMode(const ovrIntentType intentType, const char *intentFro
 
     if (intentType == INTENT_LAUNCH) {
 
-        LOG("INIT VRVB EMULATOR");
+        OVR_LOG("INIT VRVB EMULATOR");
+        //OVR_LOG("INIT VRVB EMULATOR");
 
         // used to get the battery level
         java = app->GetJava();
@@ -174,30 +175,30 @@ void OvrApp::EnteredVrMode(const ovrIntentType intentType, const char *intentFro
 
         textureWhiteId = TextureLoader::CreateWhiteTexture();
 
-        LOG("INIT VRVB EMULATOR1");
+        OVR_LOG("INIT VRVB EMULATOR1");
         // init audio
         OpenSLWrap_Init();
 
-        LOG("INIT VRVB EMULATOR2");
+        OVR_LOG("INIT VRVB EMULATOR2");
         DrawHelper::Init(MENU_WIDTH, MENU_HEIGHT);
 
-        LOG("INIT VRVB EMULATOR3");
+        OVR_LOG("INIT VRVB EMULATOR3");
         LoadSettings();
 
-        LOG("INIT VRVB EMULATOR");
+        OVR_LOG("INIT VRVB EMULATOR");
         romFolderPath = appStoragePath;
         romFolderPath += Emulator::romFolderPath;
 
-        LOG("INIT VRVB EMULATOR");
+        OVR_LOG("INIT VRVB EMULATOR");
         Emulator::Init(appStoragePath);
 
-        LOG("INIT VRVB EMULATOR");
+        OVR_LOG("INIT VRVB EMULATOR");
         // Emulator.Init(stateFolderPath);
 
-        LOG("INIT VRVB EMULATOR");
+        OVR_LOG("INIT VRVB EMULATOR");
         // VBEmulator.Init(appFolderPath);
 
-        LOG("Scan dir");
+        OVR_LOG("Scan dir");
         ScanDirectory();
 
         MenuGo::SetUpMenu();
@@ -218,12 +219,12 @@ void OvrApp::EnteredVrMode(const ovrIntentType intentType, const char *intentFro
         for (int i = 0; i < refreshRateCount; ++i) {
             if (supportedRefreshRates[i] == DisplayRefreshRate) {
                 vrapi_SetDisplayRefreshRate(app->GetOvrMobile(), DisplayRefreshRate);
-                LOG("Set to %f", DisplayRefreshRate);
+                OVR_LOG("Set to %f", DisplayRefreshRate);
                 break;
             }
         }
 
-        LOG("Done stuff 123");
+        OVR_LOG("Done stuff 123");
         //const ovrJava *java = app->GetJava();
         //SoundEffectContext = new ovrSoundEffectContext(*java->Env, java->ActivityObject);
         //SoundEffectContext->Initialize(&app->GetFileSys());

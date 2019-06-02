@@ -251,7 +251,7 @@ void Menu::Draw(int transitionDirX, int transitionDirY, float moveProgress, int 
 
 void Menu::MoveSelection(int dir) {
     // WARNIGN: this will not work if there is nothing selectable
-    // LOG("Move %i" + dir);
+    // OVR_LOG("Move %i" + dir);
     do {
         CurrentSelection += dir;
         if (CurrentSelection < 0) CurrentSelection = (int) (MenuItems.size() - 1);

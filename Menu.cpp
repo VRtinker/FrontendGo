@@ -2,6 +2,7 @@
 #include <sstream>
 #include <dirent.h>
 #include <fstream>
+#include <VrApi/Include/VrApi_Input.h>
 
 #include "Audio/OpenSLWrap.h"
 #include "DrawHelper.h"
@@ -25,6 +26,41 @@ using namespace MenuGo;
 using namespace OVR;
 
 void SaveSettings();
+/*
+enum JoyButton
+{
+    BUTTON_A				= 1<<0,
+    BUTTON_B				= 1<<1,
+    BUTTON_X				= 1<<2,
+    BUTTON_Y				= 1<<3,
+    BUTTON_START			= 1<<4,
+    BUTTON_BACK				= 1<<5,
+    BUTTON_SELECT			= 1<<6,
+    BUTTON_MENU				= 1<<7,
+    BUTTON_RIGHT_TRIGGER	= 1<<8,
+    BUTTON_LEFT_TRIGGER		= 1<<9,
+
+    BUTTON_DPAD_UP			= 1<<10,
+    BUTTON_DPAD_DOWN		= 1<<11,
+    BUTTON_DPAD_LEFT		= 1<<12,
+    BUTTON_DPAD_RIGHT		= 1<<13,
+
+    BUTTON_LSTICK_UP		= 1<<14,
+    BUTTON_LSTICK_DOWN		= 1<<15,
+    BUTTON_LSTICK_LEFT		= 1<<16,
+    BUTTON_LSTICK_RIGHT		= 1<<17,
+
+    BUTTON_RSTICK_UP		= 1<<18,
+    BUTTON_RSTICK_DOWN		= 1<<19,
+    BUTTON_RSTICK_LEFT		= 1<<20,
+    BUTTON_RSTICK_RIGHT		= 1<<21,
+
+	BUTTON_LEFT_SHOULDER	= 1<<33,
+	BUTTON_RIGHT_SHOULDER	= 1<<34,
+	BUTTON_LEFT_THUMB		= 1<<35,
+	BUTTON_RIGHT_THUMB		= 1<<36
+};
+ */
 
 int batteryColorCount = 5;
 ovrVector4f BatteryColors[] = {{0.745f, 0.114f, 0.176f, 1.0f},
@@ -107,6 +143,8 @@ bool menuOpen = true;
 bool loadedRom = false;
 bool followHead = false;
 
+ovrMatrix4f CenterEyeViewMatrix;
+
 jmethodID getVal;
 //VBEmulator *Emulator;
 
@@ -125,12 +163,12 @@ void StartTransition(Menu *next, int dir) {
 }
 
 void OnClickResumGame(MenuItem *item) {
-    LOG("Pressed RESUME GAME");
+    OVR_LOG("Pressed RESUME GAME");
     if (loadedRom) menuOpen = false;
 }
 
 void OnClickResetGame(MenuItem *item) {
-    LOG("RESET GAME");
+    OVR_LOG("RESET GAME");
     if (loadedRom) {
         Emulator::ResetGame();
         menuOpen = false;
@@ -138,7 +176,7 @@ void OnClickResetGame(MenuItem *item) {
 }
 
 void OnClickSaveGame(MenuItem *item) {
-    LOG("on click save game");
+    OVR_LOG("on click save game");
     if (loadedRom) {
         Emulator::SaveState(saveSlot);
         menuOpen = false;
@@ -221,7 +259,7 @@ void MoveMenuButtonMapping(MenuItem *item, int dir) {
 
 // mapping functions
 void UpdateButtonMappingText(MenuItem *item) {
-    LOG("Update mapping text for %i", item->Tag);
+    OVR_LOG("Update mapping text for %i", item->Tag);
     ((MenuButton *) item)->Text =
             "mapped to: " + MapButtonStr[Emulator::button_mapping_index[item->Tag]];
 }
@@ -270,7 +308,7 @@ void UpdateButtonMapping(MenuItem *item, uint &_buttonState, uint &_lastButtonSt
     if (UpdateMapping) {
         uint newButtonState = GetPressedButton(_buttonState, _lastButtonState);
 
-        LOG("button %i", _buttonState);
+        OVR_LOG("button %i", _buttonState);
 
         if (newButtonState & possibleMappingIndices) {
             int buttonIndex = 0;
@@ -279,7 +317,7 @@ void UpdateButtonMapping(MenuItem *item, uint &_buttonState, uint &_lastButtonSt
                 buttonIndex++;
             }
 
-            LOG("mapped to %i", buttonIndex);
+            OVR_LOG("mapped to %i", buttonIndex);
             UpdateMapping = false;
             *remapButton = buttonIndex;
             updateMappingText();
@@ -434,17 +472,17 @@ void MenuGo::SetUpMenu() {
 
     getVal = java->Env->GetMethodID(clsData, "GetBatteryLevel", "()I");
 
-    LOG("Set up Menu");
+    OVR_LOG("Set up Menu");
     int bigGap = 10;
     int smallGap = 5;
 
-    LOG("got emulator");
+    OVR_LOG("got emulator");
 
     menuItemSize = (fontMenu.FontSize + 4);
     strVersionWidth = GetWidth(fontVersion, STR_VERSION);
 
     {
-        LOG("Set up Rom Selection Menu");
+        OVR_LOG("Set up Rom Selection Menu");
         Emulator::InitRomSelectionMenu(0, 0, romSelectionMenu);
 
         romSelectionMenu.CurrentSelection = 0;
@@ -561,7 +599,7 @@ void MenuGo::SetUpMenu() {
                                                     nullptr,
                                                     nullptr));
 
-        LOG("Set up Main Menu");
+        OVR_LOG("Set up Main Menu");
         Emulator::InitMainMenu(posX, posY, mainMenu);
 
         mainMenu.Init();
@@ -605,7 +643,7 @@ void MenuGo::SetUpMenu() {
                                                         OnClickFollowMode,
                                                         OnClickFollowMode));
 
-        LOG("Set up Settings Menu");
+        OVR_LOG("Set up Settings Menu");
         Emulator::InitSettingsMenu(posX, posY, settingsMenu);
 
         settingsMenu.MenuItems.push_back(new MenuButton(&fontMenu,
@@ -665,7 +703,7 @@ void MenuGo::SetUpMenu() {
         posY = HEADER_HEIGHT + 10;
 
         for (int i = 0; i < Emulator::buttonCount; ++i) {
-            LOG("Set up mapping for %i", i);
+            OVR_LOG("Set up mapping for %i", i);
 
             MenuButton *newButton = new MenuButton(&fontMenu, *Emulator::button_icons[i], "abc",
                                                    posX,
@@ -864,7 +902,7 @@ void CreateScreen() {
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-    LOG("finished creating screens");
+    OVR_LOG("finished creating screens");
 }
 
 void SaveSettings() {
@@ -883,7 +921,7 @@ void SaveSettings() {
     saveFile.write(reinterpret_cast<const char *>(&SwappSelectBackButton), sizeof(bool));
 
     saveFile.close();
-    LOG("Saved Settings");
+    OVR_LOG("Saved Settings");
 }
 
 void LoadSettings() {
@@ -909,9 +947,9 @@ void LoadSettings() {
 
         // TODO: reset all loaded settings
         if (loadFile.fail())
-            LOG("Failed Loading Settings");
+            OVR_LOG("Failed Loading Settings");
         else
-            LOG("Settings Loaded");
+            OVR_LOG("Settings Loaded");
 
         loadFile.close();
     }
@@ -952,10 +990,10 @@ void ScanDirectory() {
 
         Emulator::SortRomList();
     } else {
-        LOG("could not open folder");
+        OVR_LOG("could not open folder");
     }
 
-    LOG("scanned directory");
+    OVR_LOG("scanned directory");
 }
 
 // void OvrApp::LeavingVrMode() {}
@@ -1132,8 +1170,105 @@ void UpdateCurrentMenu() {
     }
 }
 
+std::vector<ovrInputGamepadCapabilities> GamepadDevices;
 
-ovrMatrix4f CenterEyeViewMatrix;
+//==============================
+// ovrVrController::FindInputDevice
+int FindInputDevice(const ovrDeviceID deviceID) {
+    for (int i = 0; i < (int) GamepadDevices.size(); ++i) {
+        // OVR_LOG_WITH_TAG("MLBUConnect", "%i device: %u", i, GamepadDevices[i].Header.DeviceID);
+    }
+    for (int i = 0; i < (int) GamepadDevices.size(); ++i) {
+        if (GamepadDevices[i].Header.DeviceID == deviceID) {
+            return i;
+        }
+        // OVR_LOG_WITH_TAG("MLBUConnect", "%u != %u", deviceID, GamepadDevices[i]->Header.DeviceID);
+    }
+    return -1;
+}
+
+//==============================
+// ovrVrController::IsDeviceTracked
+bool IsDeviceTracked(const ovrDeviceID deviceID) {
+    return FindInputDevice(deviceID) >= 0;
+}
+
+//==============================
+// ovrVrController::OnDeviceConnected
+void OnDeviceConnected(App* app, const ovrInputCapabilityHeader &capsHeader) {
+    // check if a controller was connected
+    if (capsHeader.Type == ovrControllerType_Gamepad) {
+        OVR_LOG_WITH_TAG("MLBUConnect", "Gamepad connected, ID = %u", capsHeader.DeviceID);
+
+        ovrInputGamepadCapabilities gamepadCapabilities;
+        gamepadCapabilities.Header = capsHeader;
+        ovrResult result = vrapi_GetInputDeviceCapabilities(app->GetOvrMobile(),
+                                                  &gamepadCapabilities.Header);
+
+        if (result == ovrSuccess) {
+            OVR_LOG_WITH_TAG("MLBUConnect", "Added gamepad id = %u", capsHeader.DeviceID);
+            OVR_LOG_WITH_TAG("MLBUConnect", "Added gamepad id = %u", gamepadCapabilities.Header.DeviceID);
+            GamepadDevices.push_back(gamepadCapabilities);
+            OVR_LOG_WITH_TAG("MLBUConnect", "device: %u", GamepadDevices[GamepadDevices.size() - 1].Header.DeviceID);
+        }
+    }
+}
+
+//==============================
+// ovrVrController::EnumerateInputDevices
+void EnumerateInputDevices(App *app) {
+    for (uint32_t deviceIndex = 0;; deviceIndex++) {
+        ovrInputCapabilityHeader curCaps;
+
+        if (vrapi_EnumerateInputDevices(app->GetOvrMobile(), deviceIndex, &curCaps) < 0) {
+            //OVR_LOG_WITH_TAG( "Input", "No more devices!" );
+            break;    // no more devices
+        }
+
+        if (!IsDeviceTracked(curCaps.DeviceID)) {
+            OVR_LOG_WITH_TAG("Input", "     tracked");
+            OnDeviceConnected(app, curCaps);
+        }
+    }
+}
+
+double LastGamepadUpdateTimeInSeconds;
+
+void UpdateInput(App *app) {
+
+    EnumerateInputDevices(app);
+
+    // for each device, query its current tracking state and input state
+    // it's possible for a device to be removed during this loop, so we go through it backwards
+    for (int i = (int) GamepadDevices.size() - 1; i >= 0; --i) {
+        ovrDeviceID deviceID = GamepadDevices[i].Header.DeviceID;
+
+        if (deviceID == ovrDeviceIdType_Invalid) {
+            OVR_ASSERT(deviceID != ovrDeviceIdType_Invalid);
+            continue;
+        }
+
+        ovrInputStateGamepad gamepadInputState;
+        gamepadInputState.Header.ControllerType = ovrControllerType_Gamepad;
+        ovrResult result = vrapi_GetCurrentInputState(app->GetOvrMobile(), deviceID,
+                                                      &gamepadInputState.Header);
+
+        if (result == ovrSuccess &&
+            gamepadInputState.Header.TimeInSeconds >= LastGamepadUpdateTimeInSeconds) {
+
+            LastGamepadUpdateTimeInSeconds = gamepadInputState.Header.TimeInSeconds;
+
+            OVR_LOG_WITH_TAG("MLBUConnect", "buttons presse %d", gamepadInputState.Buttons);
+            OVR_LOG_WITH_TAG("MLBUConnect", "left trigger %f", gamepadInputState.LeftTrigger);
+            OVR_LOG_WITH_TAG("MLBUConnect", "right trigger %f", gamepadInputState.RightTrigger);
+
+
+            // gamepadInputState.Buttons & ovrButton_Up
+            // gamepadInputState.LeftTrigger
+        }
+    }
+
+}
 
 
 ovrFrameResult MenuGo::Update(App *app, const ovrFrameInput &vrFrame) {
@@ -1152,7 +1287,14 @@ ovrFrameResult MenuGo::Update(App *app, const ovrFrameInput &vrFrame) {
     buttonState = uButtonState;
     lastButtonState = uLastButtonState;
 
-    //LOG("Button State: %i %f, %f", vrFrame.Input.buttonState, vrFrame.Input.sticks[0][0],
+    // UpdateInput(app);
+
+
+    for (int i = 0; i < vrFrame.Input.NumKeyEvents; i++) {
+        OVR_LOG("Pressed %d", vrFrame.Input.KeyEvents[i].KeyCode);
+    }
+
+    //OVR_LOG("Button State: %i %f, %f", vrFrame.Input.buttonState, vrFrame.Input.sticks[0][0],
     //    vrFrame.Input.sticks[1][0]);
 
     // TODO speed

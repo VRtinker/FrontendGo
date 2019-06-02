@@ -20,14 +20,14 @@ GLuint CreateWhiteTexture() {
 
 /// Filename can be KTX or DDS files
 GLuint Load_Texture(const void *Data, std::size_t Size) {
-  LOG("Loading Texture");
+      OVR_LOG("Loading Texture");
 
   gli::texture Texture = gli::load((const char *) Data, Size);
   if (Texture.empty()) {
-    LOG("Faild loading");
+    OVR_LOG("Faild loading");
     return 0;
   }
-  LOG("Loaded TEXTURE");
+      OVR_LOG("Loaded TEXTURE");
 
   // gli::gl GLF(gli::gl::PROFILE_ES30);
   gli::gl GL1(gli::gl::PROFILE_ES30);
@@ -63,8 +63,8 @@ GLuint Load_Texture(const void *Data, std::size_t Size) {
                  : Target;
 
         if (gli::is_compressed(Texture.format())) {
-          if (Texture.target() == gli::TARGET_1D_ARRAY) LOG("TARGET_1D");
-          if (Texture.target() == gli::TARGET_2D) LOG("TARGET_2D");
+          if (Texture.target() == gli::TARGET_1D_ARRAY) OVR_LOG("TARGET_1D");
+          if (Texture.target() == gli::TARGET_2D) OVR_LOG("TARGET_2D");
 
           glCompressedTexSubImage2D(Target, static_cast<GLint>(Level), 0, 0, Extent.x,
                                     Texture.target() == gli::TARGET_1D_ARRAY ? LayerGL : Extent.y,
