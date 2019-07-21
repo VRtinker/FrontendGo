@@ -18,16 +18,19 @@ public:
     int ScrollTimeV = 5;
     int ScrollTimeH = 5;
     int Tag = 0;
+    int Tag2 = 0;
     ovrVector4f Color;
     ovrVector4f SelectionColor;
 
-    void (*UpdateFunction)(MenuItem *item, uint &buttonState, uint &lastButtonState) = nullptr;
+    void (*OnSelectFunction)(MenuItem *item, int direction) = nullptr;
+
+    void (*UpdateFunction)(MenuItem *item, uint *buttonState, uint *lastButtonState) = nullptr;
 
     MenuItem();
 
     virtual ~MenuItem() {}
 
-    virtual void Update(uint &buttonState, uint &lastButtonState);
+    virtual void Update(uint *buttonState, uint *lastButtonState);
 
     virtual int PressedUp();
 
@@ -38,6 +41,8 @@ public:
     virtual int PressedRight();
 
     virtual int PressedEnter();
+
+    virtual void OnSelect(int direction);
 
     virtual void Select();
 
@@ -60,11 +65,11 @@ public:
 
     void Init();
 
-    bool ButtonPressed(uint &buttonState, uint &lastButtonState, uint button);
+    bool ButtonPressed(uint *buttonState, uint *lastButtonState, uint device, uint button);
 
-    void MoveSelection(int dir);
+    void MoveSelection(int dir, bool onSelect);
 
-    void Update(uint &buttonState, uint &lastButtonState);
+    void Update(uint *buttonState, uint *lastButtonState);
 
     void Draw(int transitionDirX, int transitionDirY, float moveProgress, int moveDist,
               float fadeProgress);
@@ -106,13 +111,10 @@ public:
 class MenuButton : public MenuItem {
 public:
     MenuButton(FontManager::RenderFont *font, GLuint iconId, std::string text, int posX, int posY,
-               void (*pressFunction)(MenuItem *item), void (*leftFunction)(MenuItem *item),
-               void (*rightFunction)(MenuItem *item));
+               void (*pressFunction)(MenuItem *item), void (*leftFunction)(MenuItem *item), void (*rightFunction)(MenuItem *item));
 
-    MenuButton(FontManager::RenderFont *font, GLuint iconId, std::string text, int posX, int posY,
-               int height, void (*pressFunction)(MenuItem *item),
-               void (*leftFunction)(MenuItem *item),
-               void (*rightFunction)(MenuItem *item));
+    MenuButton(FontManager::RenderFont *font, GLuint iconId, std::string text, int posX, int posY, int width, int height,
+               void (*pressFunction)(MenuItem *item), void (*leftFunction)(MenuItem *item), void (*rightFunction)(MenuItem *item));
 
     virtual ~MenuButton();
 
@@ -128,11 +130,16 @@ public:
 
     std::string Text;
 
+    int ContainerWidth = 0;
+    int OffsetX = 0;
+
     virtual int PressedLeft() override;
 
     virtual int PressedRight() override;
 
     virtual int PressedEnter() override;
+
+    void SetText(std::string newText);
 
     virtual void DrawText(float offsetX, float offsetY, float transparency) override;
 
@@ -166,7 +173,7 @@ template<class MyType>
 class MenuList : public MenuItem {
 public:
     MenuList(FontManager::RenderFont *font, void (*pressFunction)(MyType *),
-                               std::vector<MyType> *romList, int posX, int posY, int width, int height) {
+             std::vector<MyType> *romList, int posX, int posY, int width, int height) {
         Font = font;
         PressFunction = pressFunction;
         ItemList = romList;
@@ -224,7 +231,7 @@ public:
         return 1;
     }
 
-    void Update(uint &buttonState, uint &lastButtonState) {
+    void Update(uint *buttonState, uint *lastButtonState) {
         // scroll the list to the current Selection
         if (CurrentSelection - 2 < menuListState && menuListState > 0) {
             menuListState--;
