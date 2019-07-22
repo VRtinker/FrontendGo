@@ -1425,10 +1425,11 @@ ovrResult PopulateRemoteControllerInfo(App *app, ovrInputDevice_TrackedRemote &t
 
             buttonStatesReal[1] = remoteInputState.Buttons;
 
-            buttonStatesReal[1] |= (remoteInputState.Joystick.x < -0.5f) ? EmuButton_Left : 0;
-            buttonStatesReal[1] |= (remoteInputState.Joystick.x > 0.5f) ? EmuButton_Right : 0;
-            buttonStatesReal[1] |= (remoteInputState.Joystick.y < -0.5f) ? EmuButton_Up : 0;
-            buttonStatesReal[1] |= (remoteInputState.Joystick.y > 0.5f) ? EmuButton_Down : 0;
+            // the directions seem to be mirrored on the touch controllers compared to the gamepad
+            buttonStatesReal[1] |= (remoteInputState.Joystick.x < -0.5f) ? EmuButton_Right : 0;
+            buttonStatesReal[1] |= (remoteInputState.Joystick.x > 0.5f) ? EmuButton_Left : 0;
+            buttonStatesReal[1] |= (remoteInputState.Joystick.y < -0.5f) ? EmuButton_Down : 0;
+            buttonStatesReal[1] |= (remoteInputState.Joystick.y > 0.5f) ? EmuButton_Up : 0;
 
             buttonStatesReal[1] |= (remoteInputState.IndexTrigger > 0.25f) ? EmuButton_Trigger : 0;
             buttonStatesReal[1] |= (remoteInputState.GripTrigger > 0.25f) ? EmuButton_GripTrigger : 0;
@@ -1437,10 +1438,10 @@ ovrResult PopulateRemoteControllerInfo(App *app, ovrInputDevice_TrackedRemote &t
 
             buttonStatesReal[2] = remoteInputState.Buttons;
 
-            buttonStatesReal[2] |= (remoteInputState.Joystick.x < -0.5f) ? EmuButton_Left : 0;
-            buttonStatesReal[2] |= (remoteInputState.Joystick.x > 0.5f) ? EmuButton_Right : 0;
-            buttonStatesReal[2] |= (remoteInputState.Joystick.y < -0.5f) ? EmuButton_Up : 0;
-            buttonStatesReal[2] |= (remoteInputState.Joystick.y > 0.5f) ? EmuButton_Down : 0;
+            buttonStatesReal[2] |= (remoteInputState.Joystick.x < -0.5f) ? EmuButton_Right : 0;
+            buttonStatesReal[2] |= (remoteInputState.Joystick.x > 0.5f) ? EmuButton_Left : 0;
+            buttonStatesReal[2] |= (remoteInputState.Joystick.y < -0.5f) ? EmuButton_Down : 0;
+            buttonStatesReal[2] |= (remoteInputState.Joystick.y > 0.5f) ? EmuButton_Up : 0;
 
             buttonStatesReal[2] |= (remoteInputState.IndexTrigger > 0.25f) ? EmuButton_Trigger : 0;
             buttonStatesReal[2] |= (remoteInputState.GripTrigger > 0.25f) ? EmuButton_GripTrigger : 0;
