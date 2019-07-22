@@ -1127,10 +1127,10 @@ ovrFrameResult MenuGo::Update(App *app, const ovrFrameInput &vrFrame) {
 
     // open/close menu
     if (loadedRom &&
-        (buttonStates[buttonMappingMenu.Buttons[0].InputDevice] & buttonMappingMenu.Buttons[0].Button &&
-         !(lastButtonStates[buttonMappingMenu.Buttons[0].InputDevice] & buttonMappingMenu.Buttons[0].Button)) ||
-        buttonStates[buttonMappingMenu.Buttons[1].InputDevice] & buttonMappingMenu.Buttons[1].Button &&
-        !(lastButtonStates[buttonMappingMenu.Buttons[1].InputDevice] & buttonMappingMenu.Buttons[1].Button)) {
+        ((buttonStates[buttonMappingMenu.Buttons[0].InputDevice] & buttonMappingMenu.Buttons[0].Button &&
+          !(lastButtonStates[buttonMappingMenu.Buttons[0].InputDevice] & buttonMappingMenu.Buttons[0].Button)) ||
+         (buttonStates[buttonMappingMenu.Buttons[1].InputDevice] & buttonMappingMenu.Buttons[1].Button &&
+          !(lastButtonStates[buttonMappingMenu.Buttons[1].InputDevice] & buttonMappingMenu.Buttons[1].Button)))) {
         menuOpen = !menuOpen;
     }
 
