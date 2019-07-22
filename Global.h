@@ -12,6 +12,7 @@ extern const int HEADER_HEIGHT, BOTTOM_HEIGHT, MENU_WIDTH, MENU_HEIGHT;
 
 extern int menuItemSize, saveSlot;
 extern bool menuOpen, loadedRom, followHead;
+extern bool SwappSelectBackButton;
 
 extern uint SelectButton, BackButton;
 extern Menu *currentMenu;

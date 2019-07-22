@@ -42,9 +42,9 @@ ovrVector4f BatteryColors[] = {{0.745F, 0.114F, 0.176F, 1.0F},
 bool showExitDialog = false;
 bool resetView = false;
 bool SwappSelectBackButton = false;
-
-uint SelectButton = BUTTON_A;
-uint BackButton = BUTTON_B;
+//
+//uint SelectButton = BUTTON_A;
+//uint BackButton = BUTTON_B;
 
 float transitionPercentage = 1.0F;
 
@@ -227,8 +227,8 @@ void SwapButtonSelectBack(MenuItem *item) {
     ((MenuButton *) item)->Text = "Swap Select and Back: ";
     ((MenuButton *) item)->Text.append((SwappSelectBackButton ? "Yes" : "No"));
 
-    SelectButton = SwappSelectBackButton ? BUTTON_B : BUTTON_A;
-    BackButton = SwappSelectBackButton ? BUTTON_A : BUTTON_B;
+//    SelectButton = SwappSelectBackButton ? BUTTON_B : BUTTON_A;
+//    BackButton = SwappSelectBackButton ? BUTTON_A : BUTTON_B;
 
     selectHelp->IconId = SwappSelectBackButton ? textureButtonBIconId : textureButtonAIconId;
     backHelp->IconId = SwappSelectBackButton ? textureButtonAIconId : textureButtonBIconId;
@@ -312,7 +312,7 @@ void OnClickChangeMenuButtonEnter(MenuItem *item) {
     possibleMappingIndices = BUTTON_X | BUTTON_Y;
 
     mappingButtonLabel->SetText("Menu Button");
-    possibleMappingLabel->SetText("(X, Y)");
+    possibleMappingLabel->SetText("(A, B, X, Y,...)");
 }
 
 void OnClickChangeButtonMappingEnter(MenuItem *item) {
@@ -506,7 +506,6 @@ void ResetMenuState() {
 }
 
 void MenuGo::SetUpMenu() {
-
     getVal = java->Env->GetMethodID(clsData, "GetBatteryLevel", "()I");
 
     OVR_LOG("Set up Menu");
@@ -529,11 +528,11 @@ void MenuGo::SetUpMenu() {
     }
 
     {
-        // TODO: fix me
-        menuHelp = new MenuButton(&fontBottom, buttonMappingMenu.Buttons[0].Button == EmuButton_X ? textureButtonXIconId : textureButtonYIconId,
-                                  "Close Menu", 7, MENU_HEIGHT - BOTTOM_HEIGHT, 0, BOTTOM_HEIGHT, nullptr, nullptr, nullptr);
-        menuHelp->Color = MenuBottomColor;
-        bottomBar.MenuItems.push_back(menuHelp);
+        // TODO: now that the menu button can be mapped to ever button not so sure what to do with this
+//        menuHelp = new MenuButton(&fontBottom, buttonMappingMenu.Buttons[0].Button == EmuButton_X ? textureButtonXIconId : textureButtonYIconId,
+//                                  "Close Menu", 7, MENU_HEIGHT - BOTTOM_HEIGHT, 0, BOTTOM_HEIGHT, nullptr, nullptr, nullptr);
+//        menuHelp->Color = MenuBottomColor;
+//        bottomBar.MenuItems.push_back(menuHelp);
 
         backHelp = new MenuButton(&fontBottom, SwappSelectBackButton ? textureButtonAIconId : textureButtonBIconId,
                                   "Back", MENU_WIDTH - 210, MENU_HEIGHT - BOTTOM_HEIGHT, 0, BOTTOM_HEIGHT, nullptr, nullptr, nullptr);
@@ -1101,6 +1100,7 @@ ovrFrameResult MenuGo::Update(App *app, const ovrFrameInput &vrFrame) {
     // UpdateInput(app);
     UpdateInputDevices(app, vrFrame);
 
+    // update button mapping timer
     if (UpdateMapping && UpdateMappingUseTimer) {
         UpdateMappingTimer -= vrFrame.DeltaSeconds;
         mappingButtonLabel->SetText(to_string((int) UpdateMappingTimer));
@@ -1187,13 +1187,13 @@ ovrFrameResult MenuGo::Update(App *app, const ovrFrameInput &vrFrame) {
         res.LayerCount++;
     }
 
-    if (showExitDialog) {
-        app->ShowSystemUI(VRAPI_SYS_UI_CONFIRM_QUIT_MENU);
-        showExitDialog = false;
-    }
     if (resetView) {
         app->RecenterYaw(false);
         resetView = false;
+    }
+    if (showExitDialog) {
+        app->ShowSystemUI(VRAPI_SYS_UI_CONFIRM_QUIT_MENU);
+        showExitDialog = false;
     }
 
     return res;

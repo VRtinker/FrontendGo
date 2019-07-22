@@ -34,16 +34,6 @@ GLuint textureBackgroundId, textureIdMenu, textureHeaderIconId, textureGbIconId,
 
 std::string appStoragePath, saveFilePath, romFolderPath;
 
-void OvrApp::LeavingVrMode() {
-}
-
-bool OvrApp::OnKeyEvent(const int keyCode, const int repeatCount, const KeyEventType eventType) {
-    if (GuiSys->OnKeyEvent(keyCode, repeatCount, eventType)) {
-        return true;
-    }
-    return false;
-}
-
 template<typename T>
 std::string to_string(T value) {
     std::ostringstream os;
@@ -53,25 +43,18 @@ std::string to_string(T value) {
 
 
 OvrApp::OvrApp()
-        : SoundEffectContext(NULL),
-          SoundEffectPlayer(NULL),
+        : SoundEffectPlayer(NULL),
           GuiSys(OvrGuiSys::Create()),
           Locale(NULL) {
-    //SceneModel(NULL) {
 }
 
 OvrApp::~OvrApp() {
-    //delete SoundEffectPlayer;
-    //SoundEffectPlayer = NULL;
+    delete SoundEffectPlayer;
+    SoundEffectPlayer = NULL;
 
-    //delete SoundEffectContext;
-    //SoundEffectContext = NULL;
+    OvrGuiSys::Destroy(GuiSys);
 
-    //OvrGuiSys::Destroy(GuiSys);
-
-    //if (SceneModel != NULL) {
-    //  delete SceneModel;
-    //}
+    OVR_LOG("Closed OvrApp");
 }
 
 void OvrApp::Configure(ovrSettings &settings) {
@@ -80,20 +63,16 @@ void OvrApp::Configure(ovrSettings &settings) {
 
     // Default to 2x MSAA.
     settings.EyeBufferParms.colorFormat = COLOR_8888_sRGB;
-    //settings.EyeBufferParms.depthFormat = DEPTH_16;
     settings.EyeBufferParms.multisamples = 4;
 
-    //settings.EyeBufferParms.resolutionWidth = 2048;
-    //settings.EyeBufferParms.resolutionHeight = 2048;
-
     settings.RenderMode = RENDERMODE_MULTIVIEW;
-
     settings.UseSrgbFramebuffer = true;
 }
 
+void OvrApp::LeavingVrMode() {
+}
 
-void OvrApp::EnteredVrMode(const ovrIntentType intentType, const char *intentFromPackage,
-                           const char *intentJSON, const char *intentURI) {
+void OvrApp::EnteredVrMode(const ovrIntentType intentType, const char *intentFromPackage, const char *intentJSON, const char *intentURI) {
     OVR_UNUSED(intentFromPackage);
     OVR_UNUSED(intentJSON);
     OVR_UNUSED(intentURI);
@@ -108,8 +87,7 @@ void OvrApp::EnteredVrMode(const ovrIntentType intentType, const char *intentFro
         clsData = java->Env->GetObjectClass(java->ActivityObject);
 
         FontManager::Init(MENU_WIDTH, MENU_HEIGHT);
-        FontManager::LoadFontFromAssets(app, &fontHeader, "apk:///assets/fonts/VirtualLogo.ttf",
-                                        65);
+        FontManager::LoadFontFromAssets(app, &fontHeader, "apk:///assets/fonts/VirtualLogo.ttf", 65);
         FontManager::LoadFont(&fontMenu, "/system/fonts/Roboto-Regular.ttf", 24);
         FontManager::LoadFont(&fontList, "/system/fonts/Roboto-Regular.ttf", 22);
         FontManager::LoadFont(&fontBottom, "/system/fonts/Roboto-Bold.ttf", 22);
@@ -162,16 +140,13 @@ void OvrApp::EnteredVrMode(const ovrIntentType intentType, const char *intentFro
         mappingRightDownId = TextureLoader::Load(app, "apk:///assets/icons/mapping/right_down.dds");
         mappingRightUpId = TextureLoader::Load(app, "apk:///assets/icons/mapping/right_up.dds");
         mappingRightLeftId = TextureLoader::Load(app, "apk:///assets/icons/mapping/right_left.dds");
-        mappingRightRightId = TextureLoader::Load(app,
-                                                  "apk:///assets/icons/mapping/right_right.dds");
+        mappingRightRightId = TextureLoader::Load(app, "apk:///assets/icons/mapping/right_right.dds");
 
         mappingStartId = TextureLoader::Load(app, "apk:///assets/icons/mapping/start.dds");
         mappingSelectId = TextureLoader::Load(app, "apk:///assets/icons/mapping/select.dds");
 
-        mappingTriggerLeft = TextureLoader::Load(app,
-                                                 "apk:///assets/icons/mapping/trigger_left.dds");
-        mappingTriggerRight = TextureLoader::Load(app,
-                                                  "apk:///assets/icons/mapping/trigger_right.dds");
+        mappingTriggerLeft = TextureLoader::Load(app, "apk:///assets/icons/mapping/trigger_left.dds");
+        mappingTriggerRight = TextureLoader::Load(app, "apk:///assets/icons/mapping/trigger_right.dds");
 
         textureWhiteId = TextureLoader::CreateWhiteTexture();
 
@@ -184,21 +159,15 @@ void OvrApp::EnteredVrMode(const ovrIntentType intentType, const char *intentFro
 
         Emulator::RestButtonMapping();
 
-        OVR_LOG("INIT VRVB EMULATOR3");
+        OVR_LOG("INIT VRVB EMULATOR Load Settings");
         LoadSettings();
 
-        OVR_LOG("INIT VRVB EMULATOR");
+        OVR_LOG("INIT VRVB EMULATOR Rom Folder");
         romFolderPath = appStoragePath;
         romFolderPath += Emulator::romFolderPath;
 
-        OVR_LOG("INIT VRVB EMULATOR");
+        OVR_LOG("INIT VRVB EMULATOR Init Emulator");
         Emulator::Init(appStoragePath);
-
-        OVR_LOG("INIT VRVB EMULATOR");
-        // Emulator.Init(stateFolderPath);
-
-        OVR_LOG("INIT VRVB EMULATOR");
-        // VBEmulator.Init(appFolderPath);
 
         OVR_LOG("Scan dir");
         ScanDirectory();

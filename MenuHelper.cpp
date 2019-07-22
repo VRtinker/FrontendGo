@@ -232,14 +232,14 @@ void Menu::Update(uint *buttonState, uint *lastButtonState) {
         }
     }
 
-    if (ButtonPressed(buttonState, lastButtonState, DeviceGamepad, EmuButton_A) ||
-        ButtonPressed(buttonState, lastButtonState, DeviceRightTouch, EmuButton_A)) {
+    if (ButtonPressed(buttonState, lastButtonState, DeviceGamepad, SwappSelectBackButton ? EmuButton_B : EmuButton_A) ||
+        ButtonPressed(buttonState, lastButtonState, DeviceRightTouch, SwappSelectBackButton ? EmuButton_B : EmuButton_A)) {
         buttonDownCount -= MenuItems[CurrentSelection]->ScrollTimeH;
         if (MenuItems[CurrentSelection]->PressedEnter() != 0) {
             ClearButtonState(buttonState);
         }
-    } else if (ButtonPressed(buttonState, lastButtonState, DeviceGamepad, EmuButton_B) ||
-               ButtonPressed(buttonState, lastButtonState, DeviceRightTouch, EmuButton_B)) {
+    } else if (ButtonPressed(buttonState, lastButtonState, DeviceGamepad, SwappSelectBackButton ? EmuButton_A : EmuButton_B) ||
+               ButtonPressed(buttonState, lastButtonState, DeviceRightTouch, SwappSelectBackButton ? EmuButton_A : EmuButton_B)) {
         if (BackPress != nullptr) BackPress();
     }
 
