@@ -17,8 +17,7 @@
 
 using namespace OVR;
 
-FontManager::RenderFont fontHeader, fontBattery, fontTime, fontMenu, fontList, fontBottom,
-        fontSlot, fontVersion, fontSmall;
+FontManager::RenderFont fontHeader, fontBattery, fontTime, fontMenu, fontList, fontBottom, fontSlot, fontVersion, fontSmall;
 
 GLuint textureBackgroundId, textureIdMenu, textureHeaderIconId, textureGbIconId,
         textureGbcIconId, textureVbIconId,
@@ -54,7 +53,7 @@ OvrApp::~OvrApp() {
 
     OvrGuiSys::Destroy(GuiSys);
 
-    OVR_LOG("Closed OvrApp");
+    OVR_LOG_WITH_TAG("OvrApp", "Closed OvrApp");
 }
 
 void OvrApp::Configure(ovrSettings &settings) {
@@ -79,8 +78,7 @@ void OvrApp::EnteredVrMode(const ovrIntentType intentType, const char *intentFro
 
     if (intentType == INTENT_LAUNCH) {
 
-        OVR_LOG("INIT VRVB EMULATOR");
-        //OVR_LOG("INIT VRVB EMULATOR");
+        OVR_LOG_WITH_TAG("OvrApp", "Init");
 
         // used to get the battery level
         java = app->GetJava();
@@ -150,26 +148,26 @@ void OvrApp::EnteredVrMode(const ovrIntentType intentType, const char *intentFro
 
         textureWhiteId = TextureLoader::CreateWhiteTexture();
 
-        OVR_LOG("INIT VRVB EMULATOR1");
+        OVR_LOG_WITH_TAG("OvrApp", "OpenSLWrap Init");
         // init audio
         OpenSLWrap_Init();
 
-        OVR_LOG("INIT VRVB EMULATOR2");
+        OVR_LOG_WITH_TAG("OvrApp", "DrawHelper Init");
         DrawHelper::Init(MENU_WIDTH, MENU_HEIGHT);
 
+        OVR_LOG_WITH_TAG("OvrApp", "Emulator Reset Button Mapping");
         Emulator::ResetButtonMapping();
 
-        OVR_LOG("INIT VRVB EMULATOR Load Settings");
+        OVR_LOG_WITH_TAG("OvrApp", "Load Settings");
         LoadSettings();
 
-        OVR_LOG("INIT VRVB EMULATOR Rom Folder");
         romFolderPath = appStoragePath;
         romFolderPath += Emulator::romFolderPath;
 
-        OVR_LOG("INIT VRVB EMULATOR Init Emulator");
+        OVR_LOG_WITH_TAG("OvrApp", "Emulator Init");
         Emulator::Init(appStoragePath);
 
-        OVR_LOG("Scan dir");
+        OVR_LOG_WITH_TAG("OvrApp", "Scan directory");
         ScanDirectory();
 
         MenuGo::SetUpMenu();
@@ -190,15 +188,10 @@ void OvrApp::EnteredVrMode(const ovrIntentType intentType, const char *intentFro
         for (int i = 0; i < refreshRateCount; ++i) {
             if (supportedRefreshRates[i] == DisplayRefreshRate) {
                 vrapi_SetDisplayRefreshRate(app->GetOvrMobile(), DisplayRefreshRate);
-                OVR_LOG("Set to %f", DisplayRefreshRate);
+                OVR_LOG_WITH_TAG("OvrApp", "Refreshrate set to %f", DisplayRefreshRate);
                 break;
             }
         }
-
-        OVR_LOG("Done stuff 123");
-        //const ovrJava *java = app->GetJava();
-        //SoundEffectContext = new ovrSoundEffectContext(*java->Env, java->ActivityObject);
-        //SoundEffectContext->Initialize(&app->GetFileSys());
 
         SoundEffectPlayer = new OvrGuiSys::ovrDummySoundEffectPlayer();
 

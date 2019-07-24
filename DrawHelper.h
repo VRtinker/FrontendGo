@@ -7,10 +7,9 @@ using namespace OVR;
 
 namespace DrawHelper {
 
-void Init(int MenuWidth, int MenuHeight);
+    void Init(int MenuWidth, int MenuHeight);
 
-void DrawTexture(GLuint textureId, GLfloat posX, GLfloat posY, GLfloat width, GLfloat height,
-                 ovrVector4f color, float transparency);
+    void DrawTexture(GLuint textureId, GLfloat posX, GLfloat posY, GLfloat width, GLfloat height, ovrVector4f color, float transparency);
 
 }  // namespace DrawHelper
 

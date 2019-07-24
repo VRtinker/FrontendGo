@@ -16,8 +16,9 @@
 #include "Global.h"
 #include "ButtonMapping.h"
 
-#define OPEN_MENU_SPEED 0.1f
-#define MENU_TRANSITION_SPEED 0.1f
+#define OPEN_MENU_SPEED 0.15f
+#define MENU_TRANSITION_SPEED 0.15f
+#define MAPPING_OVERLAY_SPEED 0.15f
 
 #define MAX_SAVE_SLOTS 10
 #define MoveSpeed 0.01 // 0.00390625f
@@ -27,7 +28,6 @@
 
 using namespace MenuGo;
 using namespace OVR;
-
 
 int batteryColorCount = 5;
 ovrVector4f BatteryColors[] = {{0.745F, 0.114F, 0.176F, 1.0F},
@@ -42,23 +42,14 @@ ovrVector4f BatteryColors[] = {{0.745F, 0.114F, 0.176F, 1.0F},
 bool showExitDialog = false;
 bool resetView = false;
 bool SwappSelectBackButton = false;
-//
-//uint SelectButton = BUTTON_A;
-//uint BackButton = BUTTON_B;
 
 float transitionPercentage = 1.0F;
-
-//uint uButtonState, uLastButtonState, buttonState, lastButtonState;
 
 uint buttonStatesReal[3];
 uint buttonStates[3];
 uint lastButtonStates[3];
 
-//int button_mapping_menu;
-//uint button_mapping_menu_index = 2; // X
-
 MappedButtons buttonMappingMenu;
-
 MappedButton *remapButton;
 
 // gamepad button names; ltouch button names; rtouch button names
@@ -86,14 +77,12 @@ std::string MapButtonStr[] = {"A", "B", "RThumb", "RBumper",
 
 std::string strMove[] = {"Follow Head: Yes", "Follow Head: No"};
 
-int strVersionWidth;
-
 int batteryLevel, batter_string_width, time_string_width;
 std::string time_string, battery_string;
 
-int ButtonMappingIndex = 0;
 bool UpdateMapping = false;
 bool UpdateMappingUseTimer = false;
+
 float UpdateMappingTimer;
 float MappingOverlayPercentage;
 
@@ -106,8 +95,6 @@ float transitionState = 1;
 
 void (*updateMappingText)() = nullptr;
 
-uint possibleMappingIndices;
-
 Menu *nextMenu, *currentBottomBar;
 Menu romSelectionMenu, mainMenu, settingsMenu, buttonMenuMapMenu, buttonEmulatorMapMenu, bottomBar,
         buttonMappingOverlay, moveMenu;
@@ -116,7 +103,6 @@ MenuButton *mappedButton;
 MenuButton *backHelp, *menuHelp, *selectHelp;
 MenuButton *yawButton, *pitchButton, *rollButton, *scaleButton, *distanceButton;
 MenuButton *slotButton;
-//MenuButton *menuMappingButtons[];
 std::vector<MenuButton> buttonMapping;
 
 MenuLabel *mappingButtonLabel, *possibleMappingLabel;
@@ -135,10 +121,11 @@ bool menuOpen = true;
 bool loadedRom = false;
 bool followHead = false;
 
+float deltaSeconds;
+
 ovrMatrix4f CenterEyeViewMatrix;
 
 jmethodID getVal;
-//VBEmulator *Emulator;
 
 template<typename T>
 std::string to_string(T value) {
@@ -155,12 +142,12 @@ void StartTransition(Menu *next, int dir) {
 }
 
 void OnClickResumGame(MenuItem *item) {
-    OVR_LOG("Pressed RESUME GAME");
+    OVR_LOG_WITH_TAG("Menu", "Pressed RESUME GAME");
     if (loadedRom) menuOpen = false;
 }
 
 void OnClickResetGame(MenuItem *item) {
-    OVR_LOG("RESET GAME");
+    OVR_LOG_WITH_TAG("Menu", "RESET GAME");
     if (loadedRom) {
         Emulator::ResetGame();
         menuOpen = false;
@@ -168,7 +155,7 @@ void OnClickResetGame(MenuItem *item) {
 }
 
 void OnClickSaveGame(MenuItem *item) {
-    OVR_LOG("on click save game");
+    OVR_LOG_WITH_TAG("Menu", "on click save game");
     if (loadedRom) {
         Emulator::SaveState(saveSlot);
         menuOpen = false;
@@ -206,8 +193,11 @@ void OnClickBackMove(MenuItem *item) {
 
 void ChangeSaveSlot(MenuItem *item, int dir) {
     saveSlot += dir;
-    if (saveSlot < 0) saveSlot = MAX_SAVE_SLOTS - 1;
-    if (saveSlot >= MAX_SAVE_SLOTS) saveSlot = 0;
+    if (saveSlot < 0)
+        saveSlot = MAX_SAVE_SLOTS - 1;
+    if (saveSlot >= MAX_SAVE_SLOTS)
+        saveSlot = 0;
+
     Emulator::UpdateStateImage(saveSlot);
     ((MenuButton *) item)->Text = "Save Slot: " + to_string(saveSlot);
 }
@@ -227,26 +217,12 @@ void SwapButtonSelectBack(MenuItem *item) {
     ((MenuButton *) item)->Text = "Swap Select and Back: ";
     ((MenuButton *) item)->Text.append((SwappSelectBackButton ? "Yes" : "No"));
 
-//    SelectButton = SwappSelectBackButton ? BUTTON_B : BUTTON_A;
-//    BackButton = SwappSelectBackButton ? BUTTON_A : BUTTON_B;
-
     selectHelp->IconId = SwappSelectBackButton ? textureButtonBIconId : textureButtonAIconId;
     backHelp->IconId = SwappSelectBackButton ? textureButtonAIconId : textureButtonBIconId;
 }
 
 uint GetPressedButton(uint &_buttonState, uint &_lastButtonState) {
     return _buttonState & ~_lastButtonState;
-}
-
-void MoveMenuButtonMapping(MenuItem *item, int dir) {
-//    button_mapping_menu_index += dir;
-//    if (button_mapping_menu_index > 3) button_mapping_menu_index = 2;
-//
-//    button_mapping_menu = 0x1 << button_mapping_menu_index;
-//    ((MenuButton *) item)->Text = "menu mapped to: " + MapButtonStr[button_mapping_menu_index];
-//
-//    menuHelp->IconId =
-//            button_mapping_menu_index == 2 ? textureButtonXIconId : textureButtonYIconId;
 }
 
 void SetMappingText(MenuButton *Button, MappedButton *Mapping) {
@@ -258,7 +234,7 @@ void SetMappingText(MenuButton *Button, MappedButton *Mapping) {
 
 // mapping functions
 void UpdateButtonMappingText(MenuItem *item) {
-    OVR_LOG("Update mapping text for %i", item->Tag);
+    OVR_LOG_WITH_TAG("Menu", "Update mapping text for %i", item->Tag);
 
     SetMappingText(((MenuButton *) item), &Emulator::buttonMapping[item->Tag].Buttons[item->Tag2]);
 }
@@ -298,18 +274,12 @@ void OnClickMappingButtonRight(MenuItem *item) {
     buttonEmulatorMapMenu.CurrentSelection++;
 }
 
-void OnClickChangeMenuButtonLeft(MenuItem *item) { MoveMenuButtonMapping(item, 1); }
-
-void OnClickChangeMenuButtonRight(MenuItem *item) { MoveMenuButtonMapping(item, 1); }
-
 void OnClickChangeMenuButtonEnter(MenuItem *item) {
     UpdateMapping = true;
     UpdateMappingUseTimer = false;
     remapButton = &buttonMappingMenu.Buttons[item->Tag];
     mappedButton = (MenuButton *) item;
     updateMappingText = UpdateMenuMapping;
-
-    possibleMappingIndices = BUTTON_X | BUTTON_Y;
 
     mappingButtonLabel->SetText("Menu Button");
     possibleMappingLabel->SetText("(A, B, X, Y,...)");
@@ -319,16 +289,11 @@ void OnClickChangeButtonMappingEnter(MenuItem *item) {
     UpdateMapping = true;
     UpdateMappingUseTimer = true;
     UpdateMappingTimer = 4.0f;
-    // TODO
+
     remapButton = &Emulator::buttonMapping[item->Tag].Buttons[item->Tag2];
     mappedButton = &buttonMapping.at(item->Tag * 2 + item->Tag2);
     updateMappingText = UpdateEmulatorMapping;
 
-    // buttons from BUTTON_A to BUTTON_RSTICK_RIGHT
-    // 4194303;// BUTTON_A | BUTTON_B | BUTTON_X | BUTTON_Y;
-    possibleMappingIndices = BUTTON_TOUCH - 1;
-
-    // TODO
     mappingButtonLabel->SetText("Button");
     possibleMappingLabel->SetText("(A, B, X, Y,...)");
 }
@@ -343,7 +308,7 @@ void UpdateButtonMapping(MenuItem *item, uint *_buttonStates, uint *_lastButtonS
         if (newButtonState) {
             for (uint j = 0; j < EmuButtonCount; ++j) {
                 if (newButtonState & ButtonMapping[j]) {
-                    OVR_LOG("mapped to %i", j);
+                    OVR_LOG_WITH_TAG("Menu", "mapped to %i", j);
                     UpdateMapping = false;
                     remapButton->InputDevice = i;
                     remapButton->ButtonIndex = j;
@@ -508,17 +473,16 @@ void ResetMenuState() {
 void MenuGo::SetUpMenu() {
     getVal = java->Env->GetMethodID(clsData, "GetBatteryLevel", "()I");
 
-    OVR_LOG("Set up Menu");
+    OVR_LOG_WITH_TAG("Menu", "Set up Menu");
     int bigGap = 10;
     int smallGap = 5;
 
-    OVR_LOG("got emulator");
+    OVR_LOG_WITH_TAG("Menu", "got emulator");
 
     menuItemSize = (fontMenu.FontSize + 4);
-    strVersionWidth = GetWidth(fontVersion, STR_VERSION);
 
     {
-        OVR_LOG("Set up Rom Selection Menu");
+        OVR_LOG_WITH_TAG("Menu", "Set up Rom Selection Menu");
         Emulator::InitRomSelectionMenu(0, 0, romSelectionMenu);
 
         romSelectionMenu.CurrentSelection = 0;
@@ -574,7 +538,7 @@ void MenuGo::SetUpMenu() {
     mainMenu.MenuItems.push_back(
             new MenuButton(&fontMenu, textureExitIconId, "Exit", posX, posY += menuItemSize + 10, OnClickExit, nullptr, nullptr));
 
-    OVR_LOG("Set up Main Menu");
+    OVR_LOG_WITH_TAG("Menu", "Set up Main Menu");
     Emulator::InitMainMenu(posX, posY, mainMenu);
 
     mainMenu.Init();
@@ -594,7 +558,7 @@ void MenuGo::SetUpMenu() {
             new MenuButton(&fontMenu, textureFollowHeadIconId, strMove[followHead ? 0 : 1], posX, posY += menuItemSize + bigGap,
                            OnClickFollowMode, OnClickFollowMode, OnClickFollowMode));
 
-    OVR_LOG("Set up Settings Menu");
+    OVR_LOG_WITH_TAG("Menu", "Set up Settings Menu");
     Emulator::InitSettingsMenu(posX, posY, settingsMenu);
 
     settingsMenu.MenuItems.push_back(
@@ -653,7 +617,7 @@ void MenuGo::SetUpMenu() {
     posY = HEADER_HEIGHT + 10;
 
     for (int i = 0; i < Emulator::buttonCount; ++i) {
-        OVR_LOG("Set up mapping for %i", i);
+        OVR_LOG_WITH_TAG("Menu", "Set up mapping for %i", i);
 
 //            MenuLabel *newButtonLabel = new MenuLabel(&fontMenu, "A Button",
 //                                                      posX, posY, 150, menuItemSize,
@@ -694,8 +658,6 @@ void MenuGo::SetUpMenu() {
 
         posY += menuItemSize;
     }
-
-    MoveMenuButtonMapping(menuMappingButton, 0);
 
     // select the first element
     buttonEmulatorMapMenu.CurrentSelection = (int) buttonEmulatorMapMenu.MenuItems.size();
@@ -793,9 +755,7 @@ int UpdateBatteryLevel() {
 
 void CreateScreen() {
     // menu layer
-    MenuSwapChain =
-            vrapi_CreateTextureSwapChain(VRAPI_TEXTURE_TYPE_2D, VRAPI_TEXTURE_FORMAT_8888_sRGB,
-                                         MENU_WIDTH, MENU_HEIGHT, 1, false);
+    MenuSwapChain = vrapi_CreateTextureSwapChain(VRAPI_TEXTURE_TYPE_2D, VRAPI_TEXTURE_FORMAT_8888_sRGB, MENU_WIDTH, MENU_HEIGHT, 1, false);
 
     textureIdMenu = vrapi_GetTextureSwapChainHandle(MenuSwapChain, 0);
     glBindTexture(GL_TEXTURE_2D, textureIdMenu);
@@ -814,11 +774,7 @@ void CreateScreen() {
     glBindFramebuffer(GL_FRAMEBUFFER, MenuFrameBuffer);
 
     // Set "renderedTexture" as our colour attachement #0
-    glFramebufferTexture2D(GL_FRAMEBUFFER,
-                           GL_COLOR_ATTACHMENT0,
-                           GL_TEXTURE_2D,
-                           (GLuint) textureIdMenu,
-                           0);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, (GLuint) textureIdMenu, 0);
 
     // Set the list of draw buffers.
     GLenum DrawBuffers[1] = {GL_COLOR_ATTACHMENT0};
@@ -826,7 +782,7 @@ void CreateScreen() {
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-    OVR_LOG("finished creating screens");
+    OVR_LOG_WITH_TAG("Menu", "finished creating screens");
 }
 
 void SaveSettings() {
@@ -847,10 +803,12 @@ void SaveSettings() {
     saveFile.write(reinterpret_cast<const char *>(&SwappSelectBackButton), sizeof(bool));
 
     saveFile.close();
-    OVR_LOG("Saved Settings");
+
+    OVR_LOG_WITH_TAG("Menu", "saved settings");
 }
 
 void LoadSettings() {
+    // default menu buttons
     buttonMappingMenu.Buttons[0].InputDevice = DeviceGamepad;
     buttonMappingMenu.Buttons[0].ButtonIndex = 5;
     // menu button on the left touch controller
@@ -882,18 +840,15 @@ void LoadSettings() {
 
         // TODO: reset all loaded settings
         if (loadFile.fail())
-            OVR_LOG("Failed Loading Settings");
+            OVR_LOG_WITH_TAG("Menu", "failed loading settings");
         else
-            OVR_LOG("Settings Loaded");
+            OVR_LOG_WITH_TAG("Menu", "settings loaded");
 
         loadFile.close();
     }
 
     buttonMappingMenu.Buttons[0].Button = ButtonMapping[buttonMappingMenu.Buttons[0].ButtonIndex];
     buttonMappingMenu.Buttons[1].Button = ButtonMapping[buttonMappingMenu.Buttons[1].ButtonIndex];
-
-    OVR_LOG("MenuButtons: %d %d", buttonMappingMenu.Buttons[0].Button, buttonMappingMenu.Buttons[0].ButtonIndex);
-    OVR_LOG("MenuButtons: %d", buttonMappingMenu.Buttons[1].Button);
 }
 
 void ScanDirectory() {
@@ -929,15 +884,13 @@ void ScanDirectory() {
 
         Emulator::SortRomList();
     } else {
-        OVR_LOG("could not open folder");
+        OVR_LOG_WITH_TAG("Menu", "could not open folder");
     }
 
-    OVR_LOG("scanned directory");
+    OVR_LOG_WITH_TAG("Menu", "scanned directory");
 }
 
-// void OvrApp::LeavingVrMode() {}
-
-void GetTimeString(std::string &timeString) {
+void SetTimeString(std::string &timeString) {
     struct timespec res{};
     clock_gettime(CLOCK_REALTIME, &res);
     time_t t = res.tv_sec;  // just in case types aren't the same
@@ -1003,7 +956,7 @@ void DrawGUI() {
     int batteryPosY = HEADER_HEIGHT / 2 + distY + 3;
 
     // update the time string
-    GetTimeString(time_string);
+    SetTimeString(time_string);
     FontManager::RenderText(fontTime, time_string, MENU_WIDTH - time_string_width - distX,
                             HEADER_HEIGHT / 2 - distY - fontBattery.FontSize +
                             fontBattery.PStart, 1.0F, textColorBattery, 1);
@@ -1012,8 +965,6 @@ void DrawGUI() {
     FontManager::RenderText(fontBattery, battery_string, MENU_WIDTH - batter_string_width - batteryWidth - 7 - distX,
                             HEADER_HEIGHT / 2 + distY + 3, 1.0F, textColorBattery, 1);
 
-    // FontManager::RenderText(fontSmall, STR_VERSION, menuWidth - strVersionWidth - 7.0f,
-    //                        HEADER_HEIGHT - 21, 1.0f, textColorVersion, 1);
     FontManager::Close();
 
     // draw battery
@@ -1047,12 +998,8 @@ void DrawGUI() {
 static inline ovrLayerProjection2 vbLayerProjection() {
     ovrLayerProjection2 layer = {};
 
-    const ovrMatrix4f
-            projectionMatrix = ovrMatrix4f_CreateProjectionFov(90.0F, 90.0F, 0.0F, 0.0F, 0.1F,
-                                                               0.0F);
-    const ovrMatrix4f
-            texCoordsFromTanAngles = ovrMatrix4f_TanAngleMatrixFromProjection(
-            &projectionMatrix);
+    const ovrMatrix4f projectionMatrix = ovrMatrix4f_CreateProjectionFov(90.0F, 90.0F, 0.0F, 0.0F, 0.1F, 0.0F);
+    const ovrMatrix4f texCoordsFromTanAngles = ovrMatrix4f_TanAngleMatrixFromProjection(&projectionMatrix);
 
     layer.Header.Type = VRAPI_LAYER_TYPE_PROJECTION2;
     layer.Header.Flags = 0;
@@ -1079,7 +1026,7 @@ static inline ovrLayerProjection2 vbLayerProjection() {
 
 void UpdateCurrentMenu() {
     if (isTransitioning) {
-        transitionState -= MENU_TRANSITION_SPEED;
+        transitionState -= deltaSeconds / MENU_TRANSITION_SPEED;
         if (transitionState < 0) {
             transitionState = 1;
             isTransitioning = false;
@@ -1091,8 +1038,7 @@ void UpdateCurrentMenu() {
 }
 
 ovrFrameResult MenuGo::Update(App *app, const ovrFrameInput &vrFrame) {
-    // time:
-    // vrFrame.PredictedDisplayTimeInSeconds
+    deltaSeconds = vrFrame.DeltaSeconds;
 
     for (int i = 0; i < 3; ++i)
         lastButtonStates[i] = buttonStatesReal[i];
@@ -1112,14 +1058,13 @@ ovrFrameResult MenuGo::Update(App *app, const ovrFrameInput &vrFrame) {
         }
     }
 
-    // TODO speed
     if (!menuOpen) {
-        if (transitionPercentage > 0) transitionPercentage -= OPEN_MENU_SPEED;
+        if (transitionPercentage > 0) transitionPercentage -= deltaSeconds / OPEN_MENU_SPEED;
         if (transitionPercentage < 0) transitionPercentage = 0;
 
         Emulator::Update(vrFrame, buttonStates, lastButtonStates);
     } else {
-        if (transitionPercentage < 1) transitionPercentage += OPEN_MENU_SPEED;
+        if (transitionPercentage < 1) transitionPercentage += deltaSeconds / OPEN_MENU_SPEED;
         if (transitionPercentage > 1) transitionPercentage = 1;
 
         UpdateCurrentMenu();
@@ -1213,12 +1158,13 @@ void MenuGo::DrawMenu() {
 
     int dist = 75;
 
+    // blend the button mapping in/out
     if (UpdateMapping) {
-        MappingOverlayPercentage += 0.2F;
+        MappingOverlayPercentage += deltaSeconds / MAPPING_OVERLAY_SPEED;
         if (MappingOverlayPercentage > 1)
             MappingOverlayPercentage = 1;
     } else {
-        MappingOverlayPercentage -= 0.2F;
+        MappingOverlayPercentage -= deltaSeconds / MAPPING_OVERLAY_SPEED;
         if (MappingOverlayPercentage < 0)
             MappingOverlayPercentage = 0;
     }
@@ -1236,18 +1182,12 @@ void MenuGo::DrawMenu() {
         buttonMappingOverlay.Draw(0, -1, (1 - sinf(MappingOverlayPercentage * MATH_FLOAT_PIOVER2)), dist, MappingOverlayPercentage);
     }
 
-    /*
-    DrawHelper::DrawTexture(textureWhiteId,
-                            0,
-                            200,
-                            fontMenu.FontSize * 30,
-                            fontMenu.FontSize * 8,
-                            {0.0f, 0.0f, 0.0f, 1.0f},
-                            1.0f);
-
-    FontManager::Begin();
-    FontManager::RenderFontImage(fontMenu, {1.0f, 1.0f, 1.0f, 1.0f}, 1.0f);
-    FontManager::Close(); */
+//    // DEBUG: render the texture of the font with a black background
+//    DrawHelper::DrawTexture(textureWhiteId, 0, 200, fontMenu.FontSize * 30, fontMenu.FontSize * 8, {0.0f, 0.0f, 0.0f, 1.0f}, 1.0f);
+//
+//    FontManager::Begin();
+//    FontManager::RenderFontTexture(fontMenu, {1.0f, 1.0f, 1.0f, 1.0f}, 1.0f);
+//    FontManager::Close();
 }
 
 
@@ -1351,7 +1291,6 @@ void EnumerateInputDevices(App *app) {
         ovrInputCapabilityHeader curCaps;
 
         if (vrapi_EnumerateInputDevices(app->GetOvrMobile(), deviceIndex, &curCaps) < 0) {
-            //OVR_LOG_WITH_TAG( "Input", "No more devices!" );
             break;    // no more devices
         }
 

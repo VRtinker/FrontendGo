@@ -61,17 +61,13 @@ namespace LayerBuilder {
                                            const float radius, const ovrQuatf *q,
                                            const float density,
                                            const float offsetY) {
-        const ovrMatrix4f rotXMatrix = ovrMatrix4f_CreateRotation(screenPitch + offsetY, 0.0f,
-                                                                  0.0f);
+        const ovrMatrix4f rotXMatrix = ovrMatrix4f_CreateRotation(screenPitch + offsetY, 0.0f, 0.0f);
         const ovrMatrix4f rotYMatrix = ovrMatrix4f_CreateRotation(0.0f, screenYaw, 0.0f);
         const ovrMatrix4f rotZMatrix = ovrMatrix4f_CreateRotation(0.0f, 0.0f, screenRoll);
 
-        const ovrMatrix4f scaleMatrix =
-                ovrMatrix4f_CreateScale(radius, radius * (float) texHeight * VRAPI_PI / density,
-                                        radius);
+        const ovrMatrix4f scaleMatrix = ovrMatrix4f_CreateScale(radius, radius * (float) texHeight * VRAPI_PI / density, radius);
 
-        const ovrMatrix4f transMatrix =
-                ovrMatrix4f_CreateTranslation(translation.x, translation.y, translation.z);
+        const ovrMatrix4f transMatrix = ovrMatrix4f_CreateTranslation(translation.x, translation.y, translation.z);
 
         // fixed
         if (q == nullptr) {
@@ -231,17 +227,14 @@ namespace LayerBuilder {
         const float density = 4875 / screenSize / 0.95f / 2.0f;
         const ovrVector3f translation = tracking->HeadPose.Pose.Position;
 
-        ovrMatrix4f cylinderTransform =
-                CylinderModelMatrix(textureHeight, translation,
-                                    radiusMenuScreen + radiusMenuScreen * 0.02f,
-                                    followHead ? &currentfQuat : nullptr, density, 0);
+        ovrMatrix4f cylinderTransform = CylinderModelMatrix(textureHeight, translation, radiusMenuScreen + radiusMenuScreen * 0.02f,
+                                                            followHead ? &currentfQuat : nullptr, density, 0);
 
         const float circScale = density * 0.5f / textureWidth;
         const float circBias = -circScale * (0.5f * (1.0f - 1.0f / circScale));
 
         for (int eye = 0; eye < VRAPI_FRAME_LAYER_EYE_MAX; eye++) {
-            ovrMatrix4f modelViewMatrix =
-                    ovrMatrix4f_Multiply(&tracking->Eye[eye].ViewMatrix, &cylinderTransform);
+            ovrMatrix4f modelViewMatrix = ovrMatrix4f_Multiply(&tracking->Eye[eye].ViewMatrix, &cylinderTransform);
 
             layer.Textures[eye].TexCoordsFromTanAngles = ovrMatrix4f_Inverse(&modelViewMatrix);
             layer.Textures[eye].ColorSwapChain = cylinderSwapChain;
@@ -263,7 +256,7 @@ namespace LayerBuilder {
             layer.Textures[eye].TextureMatrix.M[1][1] = texScaleY;
             layer.Textures[eye].TextureMatrix.M[1][2] = texBiasY;
 
-            if(eye == 0 && threedee) {
+            if (eye == 0 && threedee) {
                 layer.Textures[eye].TextureMatrix.M[0][0] -= threedeeoffset / 2;
                 layer.Textures[eye].TextureMatrix.M[0][2] -= threedeeoffset / 2;
             }
@@ -279,86 +272,5 @@ namespace LayerBuilder {
 
         return layer;
     }
-
-    static inline ovrLayerCube2 vrapi_ModLayerCube2() {
-        ovrLayerCube2 layer = {};
-
-        const ovrMatrix4f projectionMatrix =
-                ovrMatrix4f_CreateProjectionFov(90.0f, 90.0f, 0.0f, 0.0f, 0.1f, 0.0f);
-        const ovrMatrix4f texCoordsFromTanAngles =
-                ovrMatrix4f_TanAngleMatrixFromProjection(&projectionMatrix);
-
-        layer.Header.Type = VRAPI_LAYER_TYPE_CUBE2;
-        layer.Header.Flags = 0;
-        layer.Header.ColorScale.x = 1.0f;
-        layer.Header.ColorScale.y = 1.0f;
-        layer.Header.ColorScale.z = 1.0f;
-        layer.Header.ColorScale.w = 1.0f;
-        layer.Header.SrcBlend = VRAPI_FRAME_LAYER_BLEND_ONE;
-        layer.Header.DstBlend = VRAPI_FRAME_LAYER_BLEND_ZERO;
-        //layer.Header.SurfaceTextureObject = NULL;
-
-        // layer.HeadPose.Pose.Orientation.w = 1.0f;
-        layer.TexCoordsFromTanAngles = texCoordsFromTanAngles;
-
-        layer.Offset.x = 0.0f;
-        layer.Offset.y = 0.0f;
-        layer.Offset.z = 0.0f;
-
-        return layer;
-    }
-
-/*
-ovrLayerCube2 BuildCubeLayer(ovrTextureSwapChain *cubeSwapChainLeft,
-                             ovrTextureSwapChain *cubeSwapChainRight,
-                             const ovrTracking2 *tracking, bool followHead) {
-  float scale = screenSize * 0.5f;
-  const ovrMatrix4f scaleMatrix = ovrMatrix4f_CreateScale(-1.0f, 1.0f, scale);
-
-  const ovrMatrix4f rotXMatrix = ovrMatrix4f_CreateRotation(-screenPitch, 0.0f, 0.0f);
-  const ovrMatrix4f rotYMatrix = ovrMatrix4f_CreateRotation(0.0f, -screenYaw, 0.0f);
-  const ovrMatrix4f rotZMatrix = ovrMatrix4f_CreateRotation(0.0f, 0.0f, screenRoll);
-
-  const ovrMatrix4f centerEyeViewMatrix = vrapi_GetViewMatrixFromPose(&tracking->HeadPose.Pose);
-  const ovrMatrix4f vMatrix = ovrMatrix4f_TanAngleMatrixForCubeMap(&centerEyeViewMatrix);
-
-  //const ovrMatrix4f m1 = ovrMatrix4f_Multiply(&rotYMatrix, &scaleMatrix);
-  //const ovrMatrix4f m2 = ovrMatrix4f_Multiply(&m1, &vMatrix);
-
-  // const ovrVector3f translation = tracking->HeadPose.Pose.Position;
-
-  ovrLayerCube2 layer = vrapi_ModLayerCube2();
-  layer.HeadPose = tracking->HeadPose;
-
-  const ovrMatrix4f m0 = ovrMatrix4f_Multiply(&rotZMatrix, &scaleMatrix);
-  const ovrMatrix4f m1 = ovrMatrix4f_Multiply(&m0, &rotYMatrix);
-  const ovrMatrix4f m2 = ovrMatrix4f_Multiply(&m1, &rotXMatrix);
-  const ovrMatrix4f m3 = ovrMatrix4f_Multiply(&m2, &vMatrix);
-
-  layer.TexCoordsFromTanAngles = m3;
-
-  // follow head
-  if (followHead) {
-    // follow head
-    const ovrMatrix4f rotOneMatrix = ovrMatrix4f_CreateFromQuaternion(&currentfQuat);
-    const ovrMatrix4f rotinfMatrix = ovrMatrix4f_Inverse(&rotOneMatrix);
-    const ovrMatrix4f m4 = ovrMatrix4f_Multiply(&m3, &rotinfMatrix);
-    layer.TexCoordsFromTanAngles = m4;
-  }
-
-  // Apply an optional directional bias [-1.0f,1.0f] to improve
-  // quality and sample density in a particular direction.
-  layer.Offset.x = 0.0f;
-  layer.Offset.y = 0.0f;
-  layer.Offset.z = 0.0f;
-
-  layer.Textures[0].ColorSwapChain = cubeSwapChainLeft;
-  layer.Textures[0].SwapChainIndex = 0;
-  layer.Textures[1].ColorSwapChain = cubeSwapChainRight;
-  layer.Textures[1].SwapChainIndex = 0;
-
-  return layer;
-}
- */
 
 }  // namespace LayerBuilder
