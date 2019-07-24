@@ -16,7 +16,7 @@ namespace LayerBuilder {
     float radiusMenuScreen = 5.5f;
     float screenSize = 1.0f;
 
-    glm::fquat currentQuat, goalQuat;
+    glm::quat currentQuat, goalQuat;
     ovrQuatf currentfQuat;
 
     void ResetValues() {
@@ -25,6 +25,10 @@ namespace LayerBuilder {
         screenRoll = 0;
         radiusMenuScreen = 5.5f;
         screenSize = 1.0f;
+    }
+
+    float ScreenScale(){
+        return screenSize * 0.65f;
     }
 
     static void toEulerAngle(const ovrQuatf &q, float &roll, float &pitch, float &yaw) {
@@ -47,25 +51,23 @@ namespace LayerBuilder {
     }
 
     void UpdateDirection(const ovrFrameInput &vrFrame) {
-        goalQuat.w = vrFrame.Tracking.HeadPose.Pose.Orientation.w;
         goalQuat.x = vrFrame.Tracking.HeadPose.Pose.Orientation.x;
         goalQuat.y = vrFrame.Tracking.HeadPose.Pose.Orientation.y;
         goalQuat.z = vrFrame.Tracking.HeadPose.Pose.Orientation.z;
+        goalQuat.w = vrFrame.Tracking.HeadPose.Pose.Orientation.w;
 
-        currentQuat = glm::mix(currentQuat, goalQuat, FOLLOW_SPEED);
+        currentQuat = glm::slerp(currentQuat, goalQuat, FOLLOW_SPEED);
 
         currentfQuat = {currentQuat.x, currentQuat.y, currentQuat.z, currentQuat.w};
     }
 
     static ovrMatrix4f CylinderModelMatrix(const int texHeight, const ovrVector3f translation,
-                                           const float radius, const ovrQuatf *q,
-                                           const float density,
-                                           const float offsetY) {
-        const ovrMatrix4f rotXMatrix = ovrMatrix4f_CreateRotation(screenPitch + offsetY, 0.0f, 0.0f);
-        const ovrMatrix4f rotYMatrix = ovrMatrix4f_CreateRotation(0.0f, screenYaw, 0.0f);
-        const ovrMatrix4f rotZMatrix = ovrMatrix4f_CreateRotation(0.0f, 0.0f, screenRoll);
+                                           const float radius, const ovrQuatf *q, const float offsetY) {
+        const ovrMatrix4f rotXMatrix = ovrMatrix4f_CreateRotation(DegreeToRad(screenPitch) + offsetY, 0.0f, 0.0f);
+        const ovrMatrix4f rotYMatrix = ovrMatrix4f_CreateRotation(0.0f, DegreeToRad(screenYaw), 0.0f);
+        const ovrMatrix4f rotZMatrix = ovrMatrix4f_CreateRotation(0.0f, 0.0f, DegreeToRad(screenRoll));
 
-        const ovrMatrix4f scaleMatrix = ovrMatrix4f_CreateScale(radius, radius * (float) texHeight * VRAPI_PI / density, radius);
+        const ovrMatrix4f scaleMatrix = ovrMatrix4f_CreateScale(radius, radius, radius);
 
         const ovrMatrix4f transMatrix = ovrMatrix4f_CreateTranslation(translation.x, translation.y, translation.z);
 
@@ -109,23 +111,21 @@ namespace LayerBuilder {
 
         // clamp the settings size
         // maybe this should be separate from the emulator screen
-        float settingsSize = screenSize;
-        if (settingsSize < 0.75f)
-            settingsSize = 0.75f;
-        else if (settingsSize > 1.0f)
-            settingsSize = 1.0f;
+        float settingsSize = ScreenScale();
+        if (settingsSize < 0.5f)
+            settingsSize = 0.5f;
+        else if (settingsSize > 0.65f)
+            settingsSize = 0.65f;
 
-        const float density = 6400.0f / settingsSize;
-        const ovrVector3f _translation =
-                tracking->HeadPose.Pose.Position;  // {0.0f, 0.0f, 0.0f}; // tracking->HeadPose.Pose.Position;
+        const ovrVector3f _translation = tracking->HeadPose.Pose.Position;  // {0.0f, 0.0f, 0.0f}; // tracking->HeadPose.Pose.Position;
         // maybe use vrapi_GetTransformFromPose instead
 
         ovrMatrix4f cylinderTransform =
                 CylinderModelMatrix(textureHeight, _translation, radiusMenuScreen,
-                                    followHead ? &currentfQuat : nullptr, density,
-                                    (1 - offsetY) * 0.025f);
+                                    followHead ? &currentfQuat : nullptr, (1 - offsetY) * 0.025f);
 
-        const float circScale = density * 0.5f / textureWidth;
+        float aspectRation = (float) textureWidth / (float) textureHeight;
+        const float circScale = (1.0f * (180 / 60.0f) / aspectRation) / settingsSize;// * (textureWidth / (float)textureHeight);
         const float circBias = -circScale * (0.5f * (1.0f - 1.0f / circScale));
 
         for (int eye = 0; eye < VRAPI_FRAME_LAYER_EYE_MAX; eye++) {
@@ -140,7 +140,7 @@ namespace LayerBuilder {
 
             const float texScaleX = circScale;
             const float texBiasX = circBias;
-            const float texScaleY = 0.5f;
+            const float texScaleY = 1.0f / settingsSize;
             const float texBiasY = -texScaleY * (0.5f * (1.0f - (1.0f / texScaleY)));
 
             layer.Textures[eye].TextureMatrix.M[0][0] = texScaleX;
@@ -169,20 +169,19 @@ namespace LayerBuilder {
         layer.HeadPose = tracking->HeadPose;
 
         // x2: 3250.0f
-        const float density = 4875 / screenSize;
         const ovrVector3f translation = tracking->HeadPose.Pose.Position;
 
         ovrMatrix4f cylinderTransform =
-                CylinderModelMatrix(textureHeight, translation,
-                                    radiusMenuScreen + radiusMenuScreen * 0.02f,
-                                    followHead ? &currentfQuat : nullptr, density, 0);
+                CylinderModelMatrix(textureHeight, translation, radiusMenuScreen + radiusMenuScreen * 0.02f,
+                                    followHead ? &currentfQuat : nullptr, 0);
 
-        const float circScale = density * 0.5f / textureWidth;
+        float aspectRation = (float) textureWidth / (float) textureHeight;
+        OVR_LOG("AspectRation %f", aspectRation);
+        const float circScale = (1.0f * (180 / 60.0f) * aspectRation);// density * 0.5f / textureWidth;
         const float circBias = -circScale * (0.5f * (1.0f - 1.0f / circScale));
 
         for (int eye = 0; eye < VRAPI_FRAME_LAYER_EYE_MAX; eye++) {
-            ovrMatrix4f modelViewMatrix =
-                    ovrMatrix4f_Multiply(&tracking->Eye[eye].ViewMatrix, &cylinderTransform);
+            ovrMatrix4f modelViewMatrix = ovrMatrix4f_Multiply(&tracking->Eye[eye].ViewMatrix, &cylinderTransform);
             layer.Textures[eye].TexCoordsFromTanAngles = ovrMatrix4f_Inverse(&modelViewMatrix);
             layer.Textures[eye].ColorSwapChain = cylinderSwapChain;
             layer.Textures[eye].SwapChainIndex = 0;
@@ -190,9 +189,9 @@ namespace LayerBuilder {
             // Texcoord scale and bias is just a representation of the aspect ratio. The positioning
             // of the cylinder is handled entirely by the TexCoordsFromTanAngles matrix.
 
-            const float texScaleX = circScale;
+            const float texScaleX = circScale / ScreenScale();
             const float texBiasX = circBias;
-            const float texScaleY = 0.5f;
+            const float texScaleY = 1.0f / ScreenScale();
             const float texBiasY = -texScaleY * (0.5f * (1.0f - (1.0f / texScaleY)));
 
             layer.Textures[eye].TextureMatrix.M[0][0] = texScaleX;
@@ -212,21 +211,21 @@ namespace LayerBuilder {
         ovrLayerCylinder2 layer = vrapi_DefaultLayerCylinder2();
 
         const float fadeLevel = 1.0f;
-        layer.Header.ColorScale.x = layer.Header.ColorScale.y = layer.Header.ColorScale.z =
-        layer.Header.ColorScale.w = fadeLevel;
+        layer.Header.ColorScale.x = layer.Header.ColorScale.y = layer.Header.ColorScale.z = layer.Header.ColorScale.w = fadeLevel;
         layer.Header.SrcBlend = VRAPI_FRAME_LAYER_BLEND_SRC_ALPHA;
         layer.Header.DstBlend = VRAPI_FRAME_LAYER_BLEND_ONE_MINUS_SRC_ALPHA;
 
         layer.HeadPose = tracking->HeadPose;
 
         // x2: 3250.0f
-        const float density = 4875 / screenSize / 0.95f / 2.0f;
         const ovrVector3f translation = tracking->HeadPose.Pose.Position;
 
+        // 0.252717949
         ovrMatrix4f cylinderTransform = CylinderModelMatrix(textureHeight, translation, radiusMenuScreen + radiusMenuScreen * 0.02f,
-                                                            followHead ? &currentfQuat : nullptr, density, 0);
+                                                            followHead ? &currentfQuat : nullptr, 0);
 
-        const float circScale = density * 0.5f / textureWidth;
+        float aspectRation = (float) textureWidth / (float) textureHeight;
+        const float circScale = (1.0f * (180 / 60.0f) / aspectRation) / ScreenScale();// density * 0.5f / textureWidth;
         const float circBias = -circScale * (0.5f * (1.0f - 1.0f / circScale));
 
         for (int eye = 0; eye < VRAPI_FRAME_LAYER_EYE_MAX; eye++) {
@@ -241,8 +240,8 @@ namespace LayerBuilder {
 
             const float texScaleX = circScale;
             const float texBiasX = circBias;
-            const float texScaleY = 0.25f;
-            float texBiasY = 0.0625f * 2;
+            const float texScaleY = 0.5f / ScreenScale();
+            float texBiasY = -0.25f / ScreenScale() + 0.25f;
 
             if (eye == 1 && threedee)
                 texBiasY += 0.5f;
@@ -252,13 +251,16 @@ namespace LayerBuilder {
             layer.Textures[eye].TextureMatrix.M[1][1] = texScaleY;
             layer.Textures[eye].TextureMatrix.M[1][2] = texBiasY;
 
+            // not so sure if this is the right thing to do...
+            float offset = (threedeeoffset / 2) * (1 - ScreenScale()) + ScreenScale() * 0.015f;
+
             if (eye == 0 && threedee) {
-                layer.Textures[eye].TextureMatrix.M[0][0] -= (threedeeoffset / 2) / screenSize;
-                layer.Textures[eye].TextureMatrix.M[0][2] -= (threedeeoffset / 2) / screenSize;
+//                layer.Textures[eye].TextureMatrix.M[0][0] -= offset;
+                layer.Textures[eye].TextureMatrix.M[0][2] -= offset;
             }
             if (eye == 1 && threedee) {
-                layer.Textures[eye].TextureMatrix.M[0][0] += (threedeeoffset / 2) / screenSize;
-                layer.Textures[eye].TextureMatrix.M[0][2] += (threedeeoffset / 2) / screenSize;
+//                layer.Textures[eye].TextureMatrix.M[0][0] += offset;
+                layer.Textures[eye].TextureMatrix.M[0][2] += offset;
             }
 
             layer.Textures[eye].TextureRect.y = (eye == 1 && threedee) ? 0.5f : 0.0f;

@@ -21,10 +21,11 @@
 #define MAPPING_OVERLAY_SPEED 0.15f
 
 #define MAX_SAVE_SLOTS 10
-#define MoveSpeed 0.01 // 0.00390625f
-#define ZoomSpeed 0.03125f
+#define RotateSpeed  0.5
+#define MoveSpeed  0.03125f
+#define ZoomSpeed 0.0625f
 #define MIN_DISTANCE 0.5f
-#define MAX_DISTANCE 5.5f
+#define MAX_DISTANCE 10.0f
 
 using namespace MenuGo;
 using namespace OVR;
@@ -359,14 +360,13 @@ void OnBackPressedMove() {
 float ToDegree(float radian) { return (int) (180.0 / VRAPI_PI * radian * 10) / 10.0F; }
 
 void MoveYaw(MenuItem *item, float dir) {
-    LayerBuilder::screenYaw -= dir;
-    ((MenuButton *) item)->Text = "Yaw: " + to_string(ToDegree(LayerBuilder::screenYaw)) + "°";
+    LayerBuilder::screenYaw += dir;
+    ((MenuButton *) item)->Text = "Yaw: " + to_string(LayerBuilder::screenYaw) + "°";
 }
 
 void MovePitch(MenuItem *item, float dir) {
-    LayerBuilder::screenPitch -= dir;
-    ((MenuButton *) item)->Text =
-            "Pitch: " + to_string(ToDegree(LayerBuilder::screenPitch)) + "°";
+    LayerBuilder::screenPitch += dir;
+    ((MenuButton *) item)->Text = "Pitch: " + to_string(LayerBuilder::screenPitch) + "°";
 }
 
 void ChangeDistance(MenuItem *item, float dir) {
@@ -383,16 +383,15 @@ void ChangeDistance(MenuItem *item, float dir) {
 void ChangeScale(MenuItem *item, float dir) {
     LayerBuilder::screenSize -= dir;
 
-    if (LayerBuilder::screenSize < 0.05F) LayerBuilder::screenSize = 0.05F;
-    if (LayerBuilder::screenSize > 20.0F) LayerBuilder::screenSize = 20.0F;
+    if (LayerBuilder::screenSize < 0.25F) LayerBuilder::screenSize = 0.25F;
+    if (LayerBuilder::screenSize > 2.5F) LayerBuilder::screenSize = 2.5F;
 
     ((MenuButton *) item)->Text = "Scale: " + to_string(LayerBuilder::screenSize);
 }
 
 void MoveRoll(MenuItem *item, float dir) {
-    LayerBuilder::screenRoll -= dir;
-    ((MenuButton *) item)->Text =
-            "Roll: " + to_string(ToDegree(LayerBuilder::screenRoll)) + "°";
+    LayerBuilder::screenRoll += dir;
+    ((MenuButton *) item)->Text = "Roll: " + to_string(LayerBuilder::screenRoll) + "°";
 }
 
 void OnClickResetEmulatorMapping(MenuItem *item) {
@@ -430,7 +429,7 @@ void OnClickRoll(MenuItem *item) {
 }
 
 void OnClickDistance(MenuItem *item) {
-    LayerBuilder::radiusMenuScreen = 0.75F;
+    LayerBuilder::radiusMenuScreen = 5.5F;
     ChangeDistance(distanceButton, 0);
 }
 
@@ -439,17 +438,17 @@ void OnClickScale(MenuItem *item) {
     ChangeScale(scaleButton, 0);
 }
 
-void OnClickMoveScreenYawLeft(MenuItem *item) { MoveYaw(item, MoveSpeed); }
+void OnClickMoveScreenYawLeft(MenuItem *item) { MoveYaw(item, RotateSpeed); }
 
-void OnClickMoveScreenYawRight(MenuItem *item) { MoveYaw(item, -MoveSpeed); }
+void OnClickMoveScreenYawRight(MenuItem *item) { MoveYaw(item, -RotateSpeed); }
 
-void OnClickMoveScreenPitchLeft(MenuItem *item) { MovePitch(item, -MoveSpeed); }
+void OnClickMoveScreenPitchLeft(MenuItem *item) { MovePitch(item, -RotateSpeed); }
 
-void OnClickMoveScreenPitchRight(MenuItem *item) { MovePitch(item, MoveSpeed); }
+void OnClickMoveScreenPitchRight(MenuItem *item) { MovePitch(item, RotateSpeed); }
 
-void OnClickMoveScreenRollLeft(MenuItem *item) { MoveRoll(item, -MoveSpeed); }
+void OnClickMoveScreenRollLeft(MenuItem *item) { MoveRoll(item, -RotateSpeed); }
 
-void OnClickMoveScreenRollRight(MenuItem *item) { MoveRoll(item, MoveSpeed); }
+void OnClickMoveScreenRollRight(MenuItem *item) { MoveRoll(item, RotateSpeed); }
 
 void OnClickMoveScreenDistanceLeft(MenuItem *item) { ChangeDistance(item, ZoomSpeed); }
 
