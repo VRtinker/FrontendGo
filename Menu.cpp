@@ -236,7 +236,7 @@ void SetMappingText(MenuButton *Button, MappedButton *Mapping) {
 void UpdateButtonMappingText(MenuItem *item) {
     OVR_LOG_WITH_TAG("Menu", "Update mapping text for %i", item->Tag);
 
-    SetMappingText(((MenuButton *) item), &Emulator::buttonMapping[item->Tag].Buttons[item->Tag2]);
+    SetMappingText(((MenuButton *) item), &Emulator::buttonMapping[Emulator::buttonOrder[item->Tag]].Buttons[item->Tag2]);
 }
 
 void UpdateMenuMapping() {
@@ -290,7 +290,7 @@ void OnClickChangeButtonMappingEnter(MenuItem *item) {
     UpdateMappingUseTimer = true;
     UpdateMappingTimer = 4.0f;
 
-    remapButton = &Emulator::buttonMapping[item->Tag].Buttons[item->Tag2];
+    remapButton = &Emulator::buttonMapping[Emulator::buttonOrder[item->Tag]].Buttons[item->Tag2];
     mappedButton = &buttonMapping.at(item->Tag * 2 + item->Tag2);
     updateMappingText = UpdateEmulatorMapping;
 
@@ -624,8 +624,8 @@ void MenuGo::SetUpMenu() {
 //                                                      {0.9f, 0.9f, 0.9f, 0.9f});
 
         // image of the button
-        auto *newButtonImage =
-                new MenuImage(*Emulator::button_icons[i], 80 / 2 - menuItemSize / 2, posY, menuItemSize, menuItemSize, {0.9F, 0.9F, 0.9F, 0.9F});
+        auto *newButtonImage = new MenuImage(*Emulator::button_icons[Emulator::buttonOrder[i]],
+                                             80 / 2 - menuItemSize / 2, posY, menuItemSize, menuItemSize, {0.9F, 0.9F, 0.9F, 0.9F});
         buttonEmulatorMapMenu.MenuItems.push_back(newButtonImage);
 
         int mappingButtonWidth = (MENU_WIDTH - 80 - 20) / 2;

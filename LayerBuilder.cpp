@@ -207,12 +207,8 @@ namespace LayerBuilder {
         return layer;
     }
 
-    ovrLayerCylinder2 BuildGameCylinderLayer3D(ovrTextureSwapChain *cylinderSwapChain,
-                                               const int textureWidth,
-                                               const int textureHeight,
-                                               const ovrTracking2 *tracking,
-                                               bool followHead,
-                                               bool threedee, float threedeeoffset) {
+    ovrLayerCylinder2 BuildGameCylinderLayer3D(ovrTextureSwapChain *cylinderSwapChain, const int textureWidth, const int textureHeight,
+                                               const ovrTracking2 *tracking, bool followHead, bool threedee, float threedeeoffset) {
         ovrLayerCylinder2 layer = vrapi_DefaultLayerCylinder2();
 
         const float fadeLevel = 1.0f;
@@ -257,12 +253,12 @@ namespace LayerBuilder {
             layer.Textures[eye].TextureMatrix.M[1][2] = texBiasY;
 
             if (eye == 0 && threedee) {
-                layer.Textures[eye].TextureMatrix.M[0][0] -= threedeeoffset / 2;
-                layer.Textures[eye].TextureMatrix.M[0][2] -= threedeeoffset / 2;
+                layer.Textures[eye].TextureMatrix.M[0][0] -= (threedeeoffset / 2) / screenSize;
+                layer.Textures[eye].TextureMatrix.M[0][2] -= (threedeeoffset / 2) / screenSize;
             }
             if (eye == 1 && threedee) {
-                layer.Textures[eye].TextureMatrix.M[0][0] += threedeeoffset / 2;
-                layer.Textures[eye].TextureMatrix.M[0][2] += threedeeoffset / 2;
+                layer.Textures[eye].TextureMatrix.M[0][0] += (threedeeoffset / 2) / screenSize;
+                layer.Textures[eye].TextureMatrix.M[0][2] += (threedeeoffset / 2) / screenSize;
             }
 
             layer.Textures[eye].TextureRect.y = (eye == 1 && threedee) ? 0.5f : 0.0f;
