@@ -7,25 +7,24 @@ using namespace OVR;
 
 namespace LayerBuilder {
 
-extern float screenPitch, screenYaw, screenRoll, radiusMenuScreen, screenSize;
+    extern float screenPitch, screenYaw, screenRoll, radiusMenuScreen, screenSize;
 
-void UpdateDirection(const ovrFrameInput &vrFrame);
+    void UpdateDirection(const ovrFrameInput &vrFrame);
 
-void ResetValues();
+    void ResetValues();
 
-ovrLayerCylinder2 BuildSettingsCylinderLayer(ovrTextureSwapChain *cylinderSwapChain,
+    ovrLayerCylinder2 BuildSettingsCylinderLayer(ovrTextureSwapChain *cylinderSwapChain,
+                                                 const int textureWidth, const int textureHeight,
+                                                 const ovrTracking2 *tracking, bool followHead, float offsetY);
+
+    ovrLayerCylinder2 BuildGameCylinderLayer(ovrTextureSwapChain *cylinderSwapChain,
                                              const int textureWidth, const int textureHeight,
-                                             const ovrTracking2 *tracking, bool followHead,
-                                             float offsetY);
+                                             const ovrTracking2 *tracking, bool followHead);
 
-ovrLayerCylinder2 BuildGameCylinderLayer(ovrTextureSwapChain *cylinderSwapChain,
-                                         const int textureWidth, const int textureHeight,
-                                         const ovrTracking2 *tracking, bool followHead);
-
-ovrLayerCylinder2 BuildGameCylinderLayer3D(ovrTextureSwapChain *cylinderSwapChain,
-                                          const int textureWidth, const int textureHeight,
-                                          const ovrTracking2 *tracking, bool followHead,
-                                           bool threedee, float threedeeoffset);
+    ovrLayerCylinder2 BuildGameCylinderLayer3D(ovrTextureSwapChain *cylinderSwapChain,
+                                               const int textureWidth, const int textureHeight,
+                                               const ovrTracking2 *tracking, bool followHead,
+                                               bool threedee, float threedeeoffset);
 }  // namespace LayerBuilder
 
 #endif

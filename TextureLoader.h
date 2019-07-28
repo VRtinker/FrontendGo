@@ -7,9 +7,9 @@ using namespace OVR;
 
 namespace TextureLoader {
 
-GLuint CreateWhiteTexture();
+    GLuint CreateWhiteTexture();
 
-GLuint Load(App *app, const char *path);
+    GLuint Load(App *app, const char *path);
 
 }  // namespace TextureLoader
 
